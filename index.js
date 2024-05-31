@@ -14,3 +14,5 @@ app.listen(PORT, (err) => {
     }
     console.log(`server starting at http://localhost:${PORT}`)
 })
+
+// this is everything we need in lesson1
