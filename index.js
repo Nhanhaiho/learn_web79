@@ -1,127 +1,210 @@
-import express from 'express';
-import { posts } from './data/posts.js'
+import express from "express";
+// import { posts } from './data/posts.js'
 // import {users} from './data/users.js'
 const app = express();
-const PORT = 3001
-
-app.use(express.json())
+const PORT = 3001;
+const endpoint = "http://localhost:3000";
+app.use(express.json());
 
 // crud
 
-app.get('/', (req, res) => {
-    console.log(req)
-    res.send('hello mindx')
-})
+// app.get("/users", (req, res) => {
+//   fetch(`${endpoint}/users`)
+//     .then((rs) => {
+//       return rs.json();
+//     })
+//     .then((data) => {
+//       res.status(200).json({
+//         message: "Users",
+//         data: {
+//           item: data,
+//           totalItem: data.length,
+//         },
+//       });
+//     });
+// });
 
-// write api for user to get the posts
-
-app.get('/posts', (req, res) => {
-    res.status(200).json({ 
-        message: 'Posts',
-        data:{items:posts,totalItems:posts.length}
+app.get("/posts", (req, res) => {
+  fetch(`${endpoint}/posts`)
+    .then((rs) => {
+      return rs.json();
     })
-})
-
-app.get('/posts/:id', (req, res) => {
-    const { id } = req.params
-    
-    const item = posts.find(element => `${element.id}` === id)
-
-    if (item) {
-        res.status(200).json({
-            message: 'get successfully',
-            data : item
-        })
-    }
-    res.status(403).json({
-        message: 'not found',
-        data :[]
-    })
-})
-
-app.get('/detail', (req, res) => {
-    const {id} = req.query
-    const item = posts.find((element) => `${element.id}` === id);
-    
-    if (item) {
+    .then((data) => {
       res.status(200).json({
-        message: "get successfully",
-        data: item
-      })
-    }
-    res.status(403).json({
-      message: "not found",
-      data: []
-    })
-})
+        message: "Posts",
+        data: {
+          item: data,
+          totalItem: data.length,
+        },
+      });
+    });
+});
 
-app.delete('/delete-post', (req, res) => {
-    const { id } = req.query
-    // truoc khi xoa phai tim no co ko de xoa
-    //tuc la phai xet id no co giong hay ko de xoa
-    const index = posts.findIndex(element => `${element.id}` === id)
-    if (index !== -1) {
-        posts.splice(index, 1)
-        res.status(203).json({
-            message: 'post is deleted',
+// có một vấn đề là .then .catch  nên giờ viết theo try catch
+
+
+
+
+// check nguoi dung nhap dung thong tin hay chua
+app.post('/login', async (req, res) => {
+    const body = req.body;
+    
+    try {
+        if (!body.username) {
+            throw new Error('username is required')
+        }
+
+        if (!body.password) {
+            throw new Error('password is required')
+        }
+        // res.send('hello')
+        // cai nay la goi den user cua minh 
+        const rs = await fetch(`${endpoint}/users`)
+        const users = await rs.json()
+        // check coi co bi sai hoac bi bo trong k 
+        if (!users || users.length === 0) {
+            throw new Error('user not found')
+        }
+
+        const existingUser = users.find(element => element.username == body.username)
+        if (!existingUser) {
+            res.status(404)
+            throw new Error('user not found')
+        }
+
+        const isMatchPassword = existingUser.password === body.password
+        if (!isMatchPassword) {
+            res.status(405)
+            throw new Error('username/password is not correct')
+        }
+        res.status(200).json({
+            message: 'Login successfully',
             data: {
-                total_item: posts.length
+                id: existingUser.id,
+                username: existingUser.username
             }
         })
-    } else {
-        res.status(404).json({
-            message: 'data not found',
-            data : []
+
+    } catch (error) {
+        res.status(405).json({
+            message: error.message,
+            data :null
         })
     }
-
 })
 
 
-app.post('/add-new-post', (req, res) => {
+// dang ki nguoi dung moi
+app.post('/register', async (req, res) => {
+    const {username,password} = req.body
+    try {
+         if (!username) {
+           throw new Error("username is required");
+         }
 
-    const item = {
-        id: Math.floor(Math.random() * 10000),
-        ...req.body
-    }
-    posts.push(item)
-
-    res.status(201).json({
-        message: 'add new post successfully',
-        data:{item,totalItems:posts.length}
-    })
-})
-
-app.put("/update-post", (req, res) => {
-    const { id } = req.query
-    const body = req.body
-    const index = posts.findIndex(element => `${element.id}` === id)
-    
-    if (index !== -1) {
-        posts[index] = body;
+         if (!password) {
+           throw new Error("password is required");
+         }
+        const rs = await fetch(`${endpoint}/users`);
+        const users = await rs.json();
+        // console.log() --> check user co chay hay k da
         
-         res.status(201).json({
-           message: "update post successfully",
-           data: posts[index]
-         })
-    } else {
-        res.status(404).json({
-            message: 'post not found',
-            data: []
+        console.log(users);
+        // kt xem user do co ton tai hay chua
+        const existingUsers = users.find(element => element.username == username)
+        
+
+        if (existingUsers) {
+             throw new Error("username is already create!!!")
+        }
+        
+
+        const id = `U${Math.floor(Math.random() * 10000)}`
+
+        const newUser = {
+            id,username,password
+        }
+        users.push(newUser)
+        res.status(201).json({
+            message: 'user created!!!',
+            data: {
+                id,
+                username,
+            }
+        })
+        console.log(id)
+        res.send("hello");
+    } catch (error) {
+        res.status(405).json({
+            message: error.message,
+            data :null
         })
     }
+    
+})
 
- 
+// get user tra ve
+app.get("/users", async (req, res) => {
+  try {
+    const rs = await fetch(`${endpoint}/users`);
+    const data = await rs.json();
+    console.log(data);
+    if (data) {
+      res.status(200).json({
+        message: "Users by using try catch",
+        data: {
+          item: data,
+          item_total: data.length,
+        },
+      });
+    } else {
+      //   no tim ko thay se tra ve 1 cai loi
+      res.sendStatus(404);
+      throw new Error("data not found");
+    }
+  } catch (error) {
+    res.sendStatus(404);
+    throw new Error(error);
+  }
 });
 
 
+// app.get("/users", (req, res) => {
+//   fetch(`${endpoint}/users`)
+//     .then((rs) => {
+//       if (!rs.ok) {
+//         // If the response is not OK, throw an error with the status text
+//         return rs.text().then((text) => {
+//           throw new Error(text);
+//         });
+//       }
+//       // Otherwise, parse the response as JSON
+//       return rs.json();
+//     })
+//     .then((data) => {
+//       res.status(200).json({
+//         message: "Users",
+//         data: {
+//           items: data, // Changed 'item' to 'items' to better reflect that it's an array
+//           totalItems: data.length, // Changed 'totalItem' to 'totalItems' to match plural
+//         },
+//       });
+//     })
+//     .catch((error) => {
+//       // Handle any errors that occur during fetch or JSON parsing
+//       console.error("Error fetching users:", error);
+//       res.status(500).json({
+//         message: "Error fetching users",
+//         error: error.message,
+//       });
+//     });
+// });
 
 app.listen(PORT, (err) => {
-    if (err) {
-        console.error(err)
-        return
-    }    
+  if (err) {
+    console.error(err);
+    return;
+  }
 
-    console.log(`server starting at http://localhost:${PORT}`)
-})
-
+  console.log(`server starting at http://localhost:${PORT}`);
+});
