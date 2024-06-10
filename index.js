@@ -1,5 +1,6 @@
 import express from 'express';
-import {posts} from './data/posts.js'
+import { posts } from './data/posts.js'
+// import {users} from './data/users.js'
 const app = express();
 const PORT = 3001
 
@@ -114,6 +115,7 @@ app.put("/update-post", (req, res) => {
 });
 
 
+
 app.listen(PORT, (err) => {
     if (err) {
         console.error(err)
@@ -122,3 +124,4 @@ app.listen(PORT, (err) => {
 
     console.log(`server starting at http://localhost:${PORT}`)
 })
+
