@@ -1,210 +1,79 @@
 import express from "express";
-// import { posts } from './data/posts.js'
-// import {users} from './data/users.js'
+import cors from "cors";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+import UserModel from "./models/UserModel.js";
+dotenv.config();
+
 const app = express();
-const PORT = 3001;
-const endpoint = "http://localhost:3000";
+const PORT = process.env.PORT || 3001;
+const dburl = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@demodatabase.6j0vmzn.mongodb.net/?retryWrites=true&w=majority&appName=demoDATABASE`;
+
+// minh ket noi no
+
+// console.log(process.env.DB_USERNAME)
+
 app.use(express.json());
+app.use(cors());
 
-// crud
-
-// app.get("/users", (req, res) => {
-//   fetch(`${endpoint}/users`)
-//     .then((rs) => {
-//       return rs.json();
-//     })
-//     .then((data) => {
-//       res.status(200).json({
-//         message: "Users",
-//         data: {
-//           item: data,
-//           totalItem: data.length,
-//         },
-//       });
-//     });
-// });
-
-app.get("/posts", (req, res) => {
-  fetch(`${endpoint}/posts`)
-    .then((rs) => {
-      return rs.json();
-    })
-    .then((data) => {
-      res.status(200).json({
-        message: "Posts",
-        data: {
-          item: data,
-          totalItem: data.length,
-        },
-      });
-    });
-});
-
-// có một vấn đề là .then .catch  nên giờ viết theo try catch
-// get user tra ve
-app.get("/users", async (req, res) => {
+const connectDB = async () => {
   try {
-    const rs = await fetch(`${endpoint}/users`);
-    const data = await rs.json();
-    console.log(data);
-    if (data) {
-      res.status(200).json({
-        message: "Users by using try catch",
-        data: {
-          item: data,
-          item_total: data.length,
-        },
-      });
-    } else {
-      //   no tim ko thay se tra ve 1 cai loi
-      res.sendStatus(404);
-      throw new Error("data not found");
-    }
+    await mongoose.connect(dburl);
+    console.log("connect to database successfully!!!");
   } catch (error) {
-    res.sendStatus(404);
-    throw new Error(error);
+    console.log(error);
+    process.exit(1);
   }
-});
+};
+// register
+app.post('/signup', async (req, res) => {
+  // consol.log('fad')
+  try {
+      const body = req.body;
+      
+      if (!body.username || !body.password) {
+        res.sendStatus(401);
+        throw new Error("missing value");
+      }
+      const {username, password} = body
+      const existingUser = await UserModel.findOne({
+        username: { $eq: username },
+      });
+    // console.log(existingUser)
+    // res.send('hello')
+      if (existingUser) {
+        res.sendStatus(404);
+        throw new Error("username has been used");
+      }
+      const newUser = new UserModel({
+        username,
+        password,
+      });
+    await newUser.save();
+    res.status(200).json({
+      message: 'create successfully',
+      data:newUser
+    })
+  } catch (error) {
+    res.sendStatus(404)
+    throw new Error(error.message);
+  }
+  // mình xem nó truyền cho mình cái gì thì mình check trong usermodel
+  // thấy đc cỏ hai cái là username và password là required = true
 
-
-
-// check nguoi dung nhap dung thong tin hay chua
-app.post('/login', async (req, res) => {
-    const body = req.body;
-    
-    try {
-        if (!body.username) {
-            throw new Error('username is required')
-        }
-
-        if (!body.password) {
-            throw new Error('password is required')
-        }
-        // res.send('hello')
-        // cai nay la goi den user cua minh 
-        const rs = await fetch(`${endpoint}/users`)
-        const users = await rs.json()
-        // check coi co bi sai hoac bi bo trong k 
-        if (!users || users.length === 0) {
-            throw new Error('user not found')
-        }
-
-        const existingUser = users.find(element => element.username == body.username)
-        if (!existingUser) {
-            res.status(404)
-            throw new Error('user not found')
-        }
-
-        const isMatchPassword = existingUser.password === body.password
-        if (!isMatchPassword) {
-            res.status(405)
-            throw new Error('username/password is not correct')
-        }
-        res.status(200).json({
-            message: 'Login successfully',
-            data: {
-                id: existingUser.id,
-                username: existingUser.username
-            }
-        })
-
-    } catch (error) {
-        res.status(405).json({
-            message: error.message,
-            data :null
-        })
-    }
 })
 
 
-// dang ki nguoi dung moi
-app.post('/register', async (req, res) => {
-    const {username,password} = req.body
-    try {
-         if (!username) {
-           throw new Error("username is required");
-         }
-
-         if (!password) {
-           throw new Error("password is required");
-         }
-        const rs = await fetch(`${endpoint}/users`);
-        const users = await rs.json();
-        // console.log() --> check user co chay hay k da
-        
-        // console.log(users);
-        // kt xem user do co ton tai hay chua
-        const existingUsers = users.find(element => element.username == username)
-        
-
-        if (existingUsers) {
-             throw new Error("username is already create!!!")
-        }
-        
-
-        const id = `U${Math.floor(Math.random() * 10000)}`
-
-        const newUser = {
-            id,username,password
-        }
-        users.push(newUser)
-        res.status(201).json({
-            message: 'user created!!!',
-            data: {
-                id,
-                username,
-            }
-        })
-        // console.log(id)
-        // res.send("hello");
-    } catch (error) {
-        res.status(405).json({
-            message: error.message,
-            data :null
-        })
+// minh goi lai ham connectDB va .then de khi ket noi dc database thi se chay server
+// khi nó chạy try thành công thì nó sẽ chạy qua .then nếu ko nó sẽ chạy về catch(error)
+// mongo phai luu ra collection
+connectDB().then(() => {
+  app.listen(PORT, (err) => {
+    if (err) {
+      console.error(err);
+      return;
     }
-    
-})
 
-
-
-
-// app.get("/users", (req, res) => {
-//   fetch(`${endpoint}/users`)
-//     .then((rs) => {
-//       if (!rs.ok) {
-//         // If the response is not OK, throw an error with the status text
-//         return rs.text().then((text) => {
-//           throw new Error(text);
-//         });
-//       }
-//       // Otherwise, parse the response as JSON
-//       return rs.json();
-//     })
-//     .then((data) => {
-//       res.status(200).json({
-//         message: "Users",
-//         data: {
-//           items: data, // Changed 'item' to 'items' to better reflect that it's an array
-//           totalItems: data.length, // Changed 'totalItem' to 'totalItems' to match plural
-//         },
-//       });
-//     })
-//     .catch((error) => {
-//       // Handle any errors that occur during fetch or JSON parsing
-//       console.error("Error fetching users:", error);
-//       res.status(500).json({
-//         message: "Error fetching users",
-//         error: error.message,
-//       });
-//     });
-// });
-
-app.listen(PORT, (err) => {
-  if (err) {
-    console.error(err);
-    return;
-  }
-
-  console.log(`server starting at http://localhost:${PORT}`);
+    console.log(`server starting at http://localhost:${PORT}`);
+  });
 });
