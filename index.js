@@ -41,7 +41,30 @@ app.get("/posts", (req, res) => {
 });
 
 // có một vấn đề là .then .catch  nên giờ viết theo try catch
-
+// get user tra ve
+app.get("/users", async (req, res) => {
+  try {
+    const rs = await fetch(`${endpoint}/users`);
+    const data = await rs.json();
+    console.log(data);
+    if (data) {
+      res.status(200).json({
+        message: "Users by using try catch",
+        data: {
+          item: data,
+          item_total: data.length,
+        },
+      });
+    } else {
+      //   no tim ko thay se tra ve 1 cai loi
+      res.sendStatus(404);
+      throw new Error("data not found");
+    }
+  } catch (error) {
+    res.sendStatus(404);
+    throw new Error(error);
+  }
+});
 
 
 
@@ -109,7 +132,7 @@ app.post('/register', async (req, res) => {
         const users = await rs.json();
         // console.log() --> check user co chay hay k da
         
-        console.log(users);
+        // console.log(users);
         // kt xem user do co ton tai hay chua
         const existingUsers = users.find(element => element.username == username)
         
@@ -132,8 +155,8 @@ app.post('/register', async (req, res) => {
                 username,
             }
         })
-        console.log(id)
-        res.send("hello");
+        // console.log(id)
+        // res.send("hello");
     } catch (error) {
         res.status(405).json({
             message: error.message,
@@ -143,30 +166,7 @@ app.post('/register', async (req, res) => {
     
 })
 
-// get user tra ve
-app.get("/users", async (req, res) => {
-  try {
-    const rs = await fetch(`${endpoint}/users`);
-    const data = await rs.json();
-    console.log(data);
-    if (data) {
-      res.status(200).json({
-        message: "Users by using try catch",
-        data: {
-          item: data,
-          item_total: data.length,
-        },
-      });
-    } else {
-      //   no tim ko thay se tra ve 1 cai loi
-      res.sendStatus(404);
-      throw new Error("data not found");
-    }
-  } catch (error) {
-    res.sendStatus(404);
-    throw new Error(error);
-  }
-});
+
 
 
 // app.get("/users", (req, res) => {
