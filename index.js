@@ -21,7 +21,7 @@ const dburl = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWOR
 app.use(express.json());
 app.use(cors());
 // còn nếu muốn middleware logger cả hệ thống thì
-app.use(logger)
+// app.use(logger)
 
 // lesson 5
 // khi minh co mot vai chuc nang thuoc dang ki cac thu
@@ -37,8 +37,14 @@ app.use(logger)
 // })
 // minh đã định nghĩa ra rồi thì ko cần phải ghi đầy đủ như thế
 
+// mới vào nó sẽ gọi auth router trước
 app.use('/auth', authRouter)
 app.use("/tasks", taskRouter);
+
+// authentication và authorization
+// api quan trọng ở
+// các phương  (method: get,del,post)
+//query,... 
 
 
 const connectDB = async () => {

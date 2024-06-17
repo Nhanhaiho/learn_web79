@@ -1,5 +1,5 @@
 import TaskModel from "../models/TaskModel.js";
-
+import {tasks} from '../data/tasks.js'
 const addNewTask = async (req, res) => {
     try {
         const { content } = req.body
@@ -29,8 +29,7 @@ const addNewTask = async (req, res) => {
 const getTasks = async (req, res) => {
     const id = req.uid;
     try {
-        const tasks = await TaskModel.find({ createdBy: id });
-        console.log(tasks);
+        // const tasks = await TaskModel.find({ createdBy: id });
         res.status(200).json({
             message: 'task',
             data:tasks
