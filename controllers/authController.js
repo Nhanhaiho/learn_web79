@@ -1,79 +1,90 @@
 import UserModel from "../models/UserModel.js";
 import bcrypt from "bcrypt";
-import { JWT } from "../utils/getJsonWebToken.js";
+import jwt from "jsonwebtoken";
+
 const login = async (req, res) => {
-  // login vẫn nhận vào một cái body để check username vs password
+  const body = req.body
+  const {username, password} = body
   try {
-    const body = req.body;
-    const { username, password } = body;
-    if (!password || !username) {
-      res.status(401);
-      throw new Error("missing value");
+    // van kiem tra xem user co ton tai hay ko 
+    const user = await UserModel.findOne({ username })
+    console.log(user)
+    if (!user) {
+      throw new Error('user not found')
     }
-    const existingUser = await UserModel.findOne({ username });
-    if (!existingUser) {
-      res.status(402);
-      throw new Error("user not found");
-    }
-    // đây chính là lúc mình so sánh giữa cái password đc mã hóa với cái password mà user nhập vào
-    const isMatchPassword = bcrypt.compare(password, existingUser.password);
-    // mình sẽ kiểm trả nếu nó giống hay ko
+    // minh van se compare xem cai password ma nguoi dung nhap vao va password dc ma hoa roi va da dc luu có giống nhau ko ?
+    const isMatchPassword = await bcrypt.compare(password, user.password)
+    // neu ko giong thi
     if (!isMatchPassword) {
-      throw new Error("username or passowrd wrong");
-      }
-    //   lưu ý khi trả về thì ko đc trả password
-    res.status(200).json({
-      message: "welcome back ",
+      // send email : nodemailer
+      // send notify : firebase cloud messaging http v1 api
+      // kiểu như là khi thông báo tài khoản có nghi vấn đột nhập lạ nên khuyên đổi pass
+      // phát triển thêm tính năng ở đây kiểu như là đổi pass, resetpass ,......
+      throw new Error('password or username wrong')
+    }
+    // con neu giong thi res.status(200)
+
+    res.status(201).json({
+      message: 'login successfully',
       data: {
         username,
-        _id: existingUser._id,
-        accessToken: JWT.GetJWT({ id: existingUser._id, username }),
-      },
-    });
+        email: user.email,
+        _id:user._id
+      }
+    })
+
+
   } catch (error) {
-      res.status(404).json({
-        message:error.message
+    res.status(405).json({
+      message: error.message,
+      data:[]
     })
   }
+
 };
-
 const register = async (req, res) => {
-  const body = req.body;
-  // body ở đây chính là những cái req mà trên postman gửi xuống
-  // giờ mình destructering nó ra luôn
-  const { username, password } = body;
-  if (!password || !username) {
-    throw new Error("missing value");
-  }
+  try {
+    // mongoose: find --> filter (array)
+    //          findOne -> find(array)
+    const body = req.body;
+    const { username, password } = body
+    // console.log(body);
 
-  // Còn vì cái username trong userModel mình cho là uniqe: true
-  // thì mình phải đi kiểm tra username có hayh chưa
+    // mình sẽ thử tìm kiếm trên mongodb sau đó sẽ áp vào đây để kiếm user tương ứng
+    // const user = await UserModel.findOne({
+    //   $and: [{ username: { $eq: username } }, { email: { $eq: body.email} }]
+    // });
+    
+    const user = await UserModel.findOne({username})
 
-  const existingUser = await UserModel.findOne({ username });
-  if (existingUser) {
-    throw new Error("username existing ");
-  }
+    if (user) {
+      throw new Error("user existing");
+    }
 
-  const salt = await bcrypt.genSalt(10);
-  const hashPassword = await bcrypt.hash(password, salt);
-
-  const newUser = new UserModel({
-    username,
-    password: hashPassword,
-  });
-  await newUser.save();
-  // đến đây mình sẽ lấy jsonwebtoken trả lại cho người dùng
-  console.log(body);
-  res.status(201).json({
-    message: "register successfully!!!",
-    data: {
+    // day la minh hashpassword bang bcrypt
+    const salt = await bcrypt.genSalt()
+    const hashPassword = await bcrypt.hash(password,salt) 
+    
+    const newUser = new UserModel({
+      email: body.email,
       username,
-      accessToken: JWT.GetJWT({ id: newUser._id, username }),
-    },
-  });
-  //
+      password : hashPassword
+    })
+    await newUser.save()
+
+    res.status(200).json({
+      message: 'create successfully!!!',
+      data: {
+        username,email: body.email,_id:newUser._id
+      }
+    })
+
+  } catch (error) {
+    res.status(405).json({
+      message: error.message,
+      data: []
+    });
+  }
 };
 
 export { login, register };
-
-// nhiem vu kiem tra json web token la ben backend ko phai front end
